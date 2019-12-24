@@ -2,7 +2,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 #include <pthread.h>
 #include <sys/poll.h>

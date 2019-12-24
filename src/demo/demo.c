@@ -19,7 +19,7 @@ static int democount;
 static demoresult* results;
 static char *datadir = NOTCURSES_SHARE;
 
-static const char DEFAULT_DEMO[] = "ixethnbcgrwuvlsfjqo";
+static const char DEFAULT_DEMO[] = "ixemthnbcgrwuvlsfjqo";
 
 atomic_bool interrupted = ATOMIC_VAR_INIT(false);
 // checked following demos, whether aborted, failed, or otherwise
@@ -116,12 +116,121 @@ usage(const char* exe, int status){
   fprintf(out, " -f: render to file in addition to stdout\n");
   fprintf(out, " -J: emit JSON summary to file\n");
   fprintf(out, " -c: constant PRNG seed, useful for benchmarking\n");
+<<<<<<< HEAD
   fprintf(out, " -p: data file path (default: %s)\n", NOTCURSES_SHARE);
   fprintf(out, " -m: margin, or 4 comma-separated margins\n");
   fprintf(out, "if no specification is provided, run %s\n", DEFAULT_DEMO);
   for(size_t i = 0 ; i < sizeof(demos) / sizeof(*demos) ; ++i){
     if(demos[i].name){
       fprintf(out, " %c: run %s\n", (unsigned char)i + 'a', demos[i].name);
+=======
+  fprintf(out, "all demos are run if no specification is provided\n");
+  fprintf(out, " b: run box\n");
+  fprintf(out, " e: run eagles\n");
+  fprintf(out, " g: run grid\n");
+  fprintf(out, " i: run intro\n");
+  fprintf(out, " l: run luigi\n");
+  fprintf(out, " m: run maxcolor\n");
+  fprintf(out, " o: run outro\n");
+  fprintf(out, " p: run panelreels\n");
+  fprintf(out, " s: run shuffle\n");
+  fprintf(out, " t: run thermonuclear\n");
+  fprintf(out, " u: run uniblock\n");
+  fprintf(out, " v: run view\n");
+  fprintf(out, " w: run witherworm\n");
+  fprintf(out, " x: run x-ray\n");
+  exit(status);
+}
+
+static int
+intro(struct notcurses* nc){
+  struct ncplane* ncp;
+  if((ncp = notcurses_stdplane(nc)) == NULL){
+    return -1;
+  }
+  cell c = CELL_TRIVIAL_INITIALIZER;
+  cell_set_bg_rgb(&c, 0x20, 0x20, 0x20);
+  ncplane_set_default(ncp, &c);
+  if(ncplane_cursor_move_yx(ncp, 0, 0)){
+    return -1;
+  }
+  int x, y, rows, cols;
+  ncplane_dim_yx(ncp, &rows, &cols);
+  cell ul = CELL_TRIVIAL_INITIALIZER, ur = CELL_TRIVIAL_INITIALIZER;
+  cell ll = CELL_TRIVIAL_INITIALIZER, lr = CELL_TRIVIAL_INITIALIZER;
+  cell hl = CELL_TRIVIAL_INITIALIZER, vl = CELL_TRIVIAL_INITIALIZER;
+  if(cells_rounded_box(ncp, CELL_STYLE_BOLD, 0, &ul, &ur, &ll, &lr, &hl, &vl)){
+    return -1;
+  }
+  channels_set_fg_rgb(&ul.channels, 0xff, 0, 0);
+  channels_set_fg_rgb(&ur.channels, 0, 0xff, 0);
+  channels_set_fg_rgb(&ll.channels, 0, 0, 0xff);
+  channels_set_fg_rgb(&lr.channels, 0xff, 0xff, 0xff);
+  if(ncplane_box_sized(ncp, &ul, &ur, &ll, &lr, &hl, &vl, rows, cols,
+                       NCBOXGRAD_TOP | NCBOXGRAD_BOTTOM |
+                        NCBOXGRAD_RIGHT | NCBOXGRAD_LEFT)){
+    return -1;
+  }
+  cell_release(ncp, &ul); cell_release(ncp, &ur);
+  cell_release(ncp, &ll); cell_release(ncp, &lr);
+  cell_release(ncp, &hl); cell_release(ncp, &vl);
+  const char* cstr = "Δ";
+  cell_load(ncp, &c, cstr);
+  cell_set_fg_rgb(&c, 200, 0, 200);
+  int ys = 200 / (rows - 2);
+  for(y = 5 ; y < rows - 6 ; ++y){
+    cell_set_bg_rgb(&c, 0, y * ys  , 0);
+    for(x = 5 ; x < cols - 6 ; ++x){
+      if(ncplane_cursor_move_yx(ncp, y, x)){
+        return -1;
+      }
+      if(ncplane_putc(ncp, &c) <= 0){
+        return -1;
+      }
+    }
+  }
+  cell_release(ncp, &c);
+  uint64_t channels = 0;
+  channels_set_fg_rgb(&channels, 90, 0, 90);
+  channels_set_bg_rgb(&channels, 0, 0, 180);
+  if(ncplane_cursor_move_yx(ncp, 4, 4)){
+    return -1;
+  }
+  if(ncplane_rounded_box(ncp, 0, channels, rows - 6, cols - 6, 0)){
+    return -1;
+  }
+  const char s1[] = " Die Welt ist alles, was der Fall ist. ";
+  const char str[] = " Wovon man nicht sprechen kann, darüber muss man schweigen. ";
+  if(ncplane_set_fg_rgb(ncp, 192, 192, 192)){
+    return -1;
+  }
+  if(ncplane_set_bg_rgb(ncp, 0, 40, 0)){
+    return -1;
+  }
+  if(ncplane_putstr_aligned(ncp, rows / 2 - 2, NCALIGN_CENTER, s1) != (int)strlen(s1)){
+    return -1;
+  }
+  ncplane_styles_on(ncp, CELL_STYLE_ITALIC | CELL_STYLE_BOLD);
+  if(ncplane_putstr_aligned(ncp, rows / 2, NCALIGN_CENTER, str) != (int)strlen(str)){
+    return -1;
+  }
+  ncplane_styles_off(ncp, CELL_STYLE_ITALIC);
+  ncplane_set_fg_rgb(ncp, 0xff, 0xff, 0xff);
+  if(ncplane_putstr_aligned(ncp, rows - 3, NCALIGN_CENTER, "press q at any time to quit") < 0){
+    return -1;
+  }
+  ncplane_styles_off(ncp, CELL_STYLE_BOLD);
+  const wchar_t wstr[] = L"▏▁ ▂ ▃ ▄ ▅ ▆ ▇ █ █ ▇ ▆ ▅ ▄ ▃ ▂ ▁▕";
+  if(ncplane_putwstr_aligned(ncp, rows / 2 - 5, NCALIGN_CENTER, wstr) < 0){
+    return -1;
+  }
+  if(rows < 45){
+    ncplane_set_fg_rgb(ncp, 0xc0, 0, 0x80);
+    ncplane_set_bg_rgb(ncp, 0x20, 0x20, 0x20);
+    ncplane_styles_on(ncp, CELL_STYLE_BLINK); // heh FIXME replace with pulse
+    if(ncplane_putstr_aligned(ncp, 2, NCALIGN_CENTER, "demo runs best with at least 45 lines") < 0){
+      return -1;
+>>>>>>> a9e1829... merrrrge
     }
   }
   exit(status);
@@ -146,6 +255,7 @@ ext_demos(struct notcurses* nc, const char* spec, bool ignore_failures){
     if(interrupted){
       break;
     }
+<<<<<<< HEAD
     int idx = spec[i] - 'a';
 #ifdef DFSG_BUILD
     if(demos[idx].dfsg_disabled){
@@ -160,6 +270,27 @@ ext_demos(struct notcurses* nc, const char* spec, bool ignore_failures){
 #ifndef USE_MULTIMEDIA
     if(demos[idx].mmeng_disabled){
       continue;
+=======
+    switch(demos[i]){
+      case 'i': ret = intro(nc); break;
+      case 'o': ret = outro(nc); break;
+      case 's': ret = sliding_puzzle_demo(nc); break;
+      case 'u': ret = unicodeblocks_demo(nc); break;
+      case 't': ret = thermonuclear_demo(nc); break;
+      case 'm': ret = maxcolor_demo(nc); break;
+      case 'b': ret = box_demo(nc); break;
+      case 'g': ret = grid_demo(nc); break;
+      case 'l': ret = luigi_demo(nc); break;
+      case 'v': ret = view_demo(nc); break;
+      case 'e': ret = eagle_demo(nc); break;
+      case 'x': ret = xray_demo(nc); break;
+      case 'w': ret = witherworm_demo(nc); break;
+      case 'p': ret = panelreel_demo(nc); break;
+      default:
+        fprintf(stderr, "Unknown demo specification: %c\n", *demos);
+        ret = -1;
+        break;
+>>>>>>> a9e1829... merrrrge
     }
 #endif
     hud_schedule(demos[idx].name);
