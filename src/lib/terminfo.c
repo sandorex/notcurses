@@ -127,3 +127,14 @@ int interrogate_terminfo(tinfo* ti){
   term_verify_seq(&ti->rmkx, "rmkx");
   return 0;
 }
+
+// hand-check the terminfo long description for certain environments
+// known to be incapable of rendering multicolumn glyphs
+bool term_no_wide_support(void){
+  const char* longname_term = longname();
+  if(strcmp(longname_term, "linux console") == 0){
+    return true;
+  }
+  // FIXME freebsd console also
+  return false;
+}

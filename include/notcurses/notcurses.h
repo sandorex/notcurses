@@ -109,6 +109,13 @@ API int ncdirect_clear(struct ncdirect* nc);
 API int ncdirect_stop(struct ncdirect* nc);
 
 // Returns the number of columns occupied by a multibyte (UTF-8) string, or
+// -1 if a non-printable/illegal character is encountered. Takes the true
+// rendering system into account, to the degree possible. This currently means
+// that on the Linux or FreeBSD console, no EGC accounts for more than one
+// column.
+API int notcurses_mbswidth(const struct notcurses* nc, const char* mbs);
+
+// Returns the number of columns occupied by a multibyte (UTF-8) string, or
 // -1 if a non-printable/illegal character is encountered.
 static inline int
 mbswidth(const char* mbs){
@@ -1054,6 +1061,23 @@ API bool notcurses_canutf8(const struct notcurses* nc);
 
 // Can we blit to Sixel? This requires being built against libsixel.
 API bool notcurses_cansixel(const struct notcurses* nc);
+
+// Are multicolumn glyphs visually supported? A positive result might be a
+// false positive--this primarily exists to note environments where
+// multicolumn glyphs are known not to be supported, e.g. the Linux and
+// FreeBSD consoles.
+API bool notcurses_canwide(const struct notcurses* nc);
+
+static inline int
+notcurses_wcwidth(const struct notcurses* nc, wchar_t w){
+  int ret = wcwidth(w);
+  if(ret > 1){
+    if(!notcurses_canwide(nc)){
+      ret = 1;
+    }
+  }
+  return ret;
+}
 
 typedef struct ncstats {
   // purely increasing stats

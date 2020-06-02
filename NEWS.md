@@ -1,6 +1,13 @@
 This document attempts to list user-visible changes and any major internal
 rearrangements of Notcurses.
 
+* 1.4.5 (not yet released)
+  * Add `notcurses_canwide()`, to determine whether the font rendering system
+    can emit wide glyphs across multiple columns. Can false positive--this
+    mainly exists to indicate that some environments *cannot*.
+  * Add `notcurses_mbswidth()` and `notcurses_wcwidth()`, which take
+    `notcurses_canwide()` into account when calculating display width.
+
 * 1.4.4.1 (2020-06-01)
   * Got the `ncvisual` API ready for API freeze: `ncvisual_render()` and
     `ncvisual_stream()` now take a `struct ncvisual_options`. `ncstyle_e`

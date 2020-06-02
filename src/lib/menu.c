@@ -18,7 +18,7 @@ free_menu_sections(ncmenu* ncm){
 }
 
 static int
-dup_menu_item(ncmenu_int_item* dst, const struct ncmenu_item* src){
+dup_menu_item(const notcurses* nc, ncmenu_int_item* dst, const struct ncmenu_item* src){
 #define ALTMOD "Alt+"
 #define CTLMOD "Ctrl+"
   if((dst->desc = strdup(src->desc)) == NULL){
@@ -61,14 +61,14 @@ dup_menu_item(ncmenu_int_item* dst, const struct ncmenu_item* src){
   }
   sdup[n + mbbytes] = '\0';
   dst->shortdesc = sdup;
-  dst->shortdesccols = mbswidth(dst->shortdesc);
+  dst->shortdesccols = notcurses_mbswidth(nc, dst->shortdesc);
   return 0;
 #undef CTLMOD
 #undef ALTMOD
 }
 
 static int
-dup_menu_section(ncmenu_int_section* dst, const struct ncmenu_section* src){
+dup_menu_section(const notcurses* nc, ncmenu_int_section* dst, const struct ncmenu_section* src){
   // we must reject any empty section
   if(src->itemcount == 0 || src->items == NULL){
     return -1;
@@ -85,7 +85,7 @@ dup_menu_section(ncmenu_int_section* dst, const struct ncmenu_section* src){
   }
   for(int i = 0 ; i < src->itemcount ; ++i){
     if(src->items[i].desc){
-      if(dup_menu_item(&dst->items[i], &src->items[i])){
+      if(dup_menu_item(nc, &dst->items[i], &src->items[i])){
         while(i--){
           free(dst->items[i].desc);
         }
@@ -93,7 +93,7 @@ dup_menu_section(ncmenu_int_section* dst, const struct ncmenu_section* src){
         return -1;
       }
       gotitem = true;
-      int cols = mbswidth(dst->items[i].desc);
+      int cols = notcurses_mbswidth(nc, dst->items[i].desc);
       if(dst->items[i].shortdesc){
         cols += 2 + dst->items[i].shortdesccols; // two spaces minimum
       }
@@ -124,7 +124,8 @@ dup_menu_section(ncmenu_int_section* dst, const struct ncmenu_section* src){
 
 // Duplicates all menu sections in opts, adding their length to '*totalwidth'.
 static int
-dup_menu_sections(ncmenu* ncm, const ncmenu_options* opts, int* totalwidth, int* totalheight){
+dup_menu_sections(const notcurses* nc, ncmenu* ncm, const ncmenu_options* opts,
+                  int* totalwidth, int* totalheight){
   if(opts->sectioncount == 0){
     return -1;
   }
@@ -139,7 +140,7 @@ dup_menu_sections(ncmenu* ncm, const ncmenu_options* opts, int* totalwidth, int*
   int i;
   for(i = 0 ; i < opts->sectioncount ; ++i){
     if(opts->sections[i].name){
-      int cols = mbswidth(opts->sections[i].name);
+      int cols = notcurses_mbswidth(nc, opts->sections[i].name);
       if(rightaligned){ // FIXME handle more than one right-aligned section
         ncm->sections[i].xoff = -(cols + 2);
       }else{
@@ -148,7 +149,7 @@ dup_menu_sections(ncmenu* ncm, const ncmenu_options* opts, int* totalwidth, int*
       if(cols < 0 || (ncm->sections[i].name = strdup(opts->sections[i].name)) == NULL){
         goto err;
       }
-      if(dup_menu_section(&ncm->sections[i], &opts->sections[i])){
+      if(dup_menu_section(nc, &ncm->sections[i], &opts->sections[i])){
         free(ncm->sections[i].name);
         goto err;
       }
@@ -200,7 +201,7 @@ err:
 // what section header, if any, is living at the provided x coordinate? solves
 // by replaying the write_header() algorithm. returns -1 if no such section.
 static int
-section_x(const ncmenu* ncm, int x){
+section_x(const notcurses* nc, const ncmenu* ncm, int x){
   int dimx = ncplane_dim_x(ncm->ncp);
   for(int i = 0 ; i < ncm->sectioncount ; ++i){
     if(!ncm->sections[i].name){
@@ -211,14 +212,14 @@ section_x(const ncmenu* ncm, int x){
       if(x < pos){
         break;
       }
-      if(x < pos + mbswidth(ncm->sections[i].name)){
+      if(x < pos + notcurses_mbswidth(nc, ncm->sections[i].name)){
         return i;
       }
     }else{
       if(x < ncm->sections[i].xoff){
         break;
       }
-      if(x < ncm->sections[i].xoff + mbswidth(ncm->sections[i].name)){
+      if(x < ncm->sections[i].xoff + notcurses_mbswidth(nc, ncm->sections[i].name)){
         return i;
       }
     }
@@ -227,7 +228,8 @@ section_x(const ncmenu* ncm, int x){
 }
 
 static int
-write_header(ncmenu* ncm){ ncm->ncp->channels = ncm->headerchannels;
+write_header(const notcurses* nc, ncmenu* ncm){
+  ncm->ncp->channels = ncm->headerchannels;
   int dimy, dimx;
   ncplane_dim_yx(ncm->ncp, &dimy, &dimx);
   int xoff = 0; // 2-column margin on left
@@ -273,7 +275,7 @@ write_header(ncmenu* ncm){ ncm->ncp->channels = ncm->headerchannels;
         }
         cell_release(ncm->ncp, &cl);
       }
-      xoff += mbswidth(ncm->sections[i].name);
+      xoff += notcurses_mbswidth(nc, ncm->sections[i].name);
     }
   }
   while(xoff < dimx){
@@ -286,6 +288,7 @@ write_header(ncmenu* ncm){ ncm->ncp->channels = ncm->headerchannels;
 }
 
 ncmenu* ncmenu_create(ncplane* n, const ncmenu_options* opts){
+  const struct notcurses* nc = ncplane_notcurses(n);
   if(opts->sectioncount <= 0 || !opts->sections){
     return NULL;
   }
@@ -301,7 +304,7 @@ ncmenu* ncmenu_create(ncplane* n, const ncmenu_options* opts){
   ncplane_dim_yx(notcurses_stdplane(n->nc), &dimy, &dimx);
   if(ret){
     ret->bottom = !!(opts->flags & NCMENU_OPTION_BOTTOM);
-    if(dup_menu_sections(ret, opts, &totalwidth, &totalheight) == 0){
+    if(dup_menu_sections(nc, ret, opts, &totalwidth, &totalheight) == 0){
       ret->headerwidth = totalwidth;
       if(totalwidth < dimx){
         totalwidth = dimx;
@@ -317,7 +320,7 @@ ncmenu* ncmenu_create(ncplane* n, const ncmenu_options* opts){
         cell_set_bg_alpha(&c, CELL_ALPHA_TRANSPARENT);
         ncplane_set_base_cell(ret->ncp, &c);
         cell_release(ret->ncp, &c);
-        if(write_header(ret) == 0){
+        if(write_header(nc, ret) == 0){
           return ret;
         }
         ncplane_destroy(ret->ncp);
@@ -434,7 +437,7 @@ int ncmenu_rollup(ncmenu* n){
   }
   n->unrolledsection = -1;
   ncplane_erase(n->ncp);
-  return write_header(n);
+  return write_header(ncplane_notcurses(n->ncp), n);
 }
 
 int ncmenu_nextsection(ncmenu* n){
@@ -523,7 +526,7 @@ bool ncmenu_offer_input(ncmenu* n, const ncinput* nc){
     if(y != (n->bottom ? dimy - 1 : 0)){
       return false;
     }
-    int i = section_x(n, x);
+    int i = section_x(ncplane_notcurses(n->ncp), n, x);
     if(i < 0 || i == n->unrolledsection){
       ncmenu_rollup(n);
     }else{

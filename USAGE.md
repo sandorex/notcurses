@@ -240,6 +240,12 @@ bool notcurses_canutf8(const struct notcurses* nc);
 
 // Can we blit to Sixel? This requires being built against libsixel.
 bool notcurses_cansixel(const struct notcurses* nc);
+
+// Are multicolumn glyphs visually supported? A positive result might be a
+// false positive--this primarily exists to note environments where
+// multicolumn glyphs are known not to be supported, e.g. the Linux and
+// FreeBSD consoles.
+bool notcurses_canwide(const struct notcurses* nc);
 ```
 
 ## Direct mode

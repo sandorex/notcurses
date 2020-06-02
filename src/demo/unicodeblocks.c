@@ -21,6 +21,7 @@ fade_block(struct notcurses* nc, struct ncplane* nn, const struct timespec* subd
 
 static int
 draw_block(struct ncplane* nn, uint32_t blockstart){
+  struct notcurses* nc = ncplane_notcurses(nn);
   int dimx, dimy;
   ncplane_dim_yx(nn, &dimy, &dimx);
   cell ul = CELL_TRIVIAL_INITIALIZER, ur = CELL_TRIVIAL_INITIALIZER;
@@ -58,20 +59,19 @@ draw_block(struct ncplane* nn, uint32_t blockstart){
   for(chunk = 0 ; chunk < BLOCKSIZE / CHUNKSIZE ; ++chunk){
     int z;
     for(z = 0 ; z < CHUNKSIZE ; ++z){
-      wchar_t w[2] = { blockstart + chunk * CHUNKSIZE + z, L'\0' };
+      wchar_t w[1] = { blockstart + chunk * CHUNKSIZE + z };
       char utf8arr[MB_CUR_MAX * 3 + 5];
-      if(wcswidth(w, INT_MAX) >= 1 && iswgraph(w[0])){
+      if(wcwidth(w[0]) >= 1 && iswgraph(w[0])){
         mbstate_t ps;
         memset(&ps, 0, sizeof(ps));
-        const wchar_t *wptr = w;
-        int bwc = wcsrtombs(utf8arr, &wptr, sizeof(utf8arr), &ps);
+        int bwc = wcrtomb(utf8arr, w[0], &ps);
         if(bwc < 0){
           fprintf(stderr, "Couldn't convert %u (%x) (%lc) (%s)\n",
                   blockstart + chunk * CHUNKSIZE + z,
                   blockstart + chunk * CHUNKSIZE + z, w[0], strerror(errno));
           return -1;
         }
-        if(wcwidth(w[0]) < 2){
+        if(notcurses_wcwidth(nc, w[0]) < 2){
           utf8arr[bwc++] = ' ';
         }
         utf8arr[bwc++] = 0xe2;

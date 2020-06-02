@@ -508,7 +508,7 @@ int witherworm_demo(struct notcurses* nc){
           }
           int ulen = 0;
           int r;
-          if(wcwidth(wcs) <= maxx - x){
+          if(notcurses_wcwidth(nc, wcs) <= maxx - x){
             if((r = ncplane_putegc(n, &(*s)[idx], &ulen)) <= 0){
               if(ulen < 0){
                 return -1;

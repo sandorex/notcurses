@@ -764,6 +764,7 @@ notcurses* notcurses_init(const notcurses_options* opts, FILE* outfp){
   ret->lfdimy = 0;
   ret->lfdimx = 0;
   ret->libsixel = false;
+  ret->nowideglyphs = false;
   egcpool_init(&ret->pool);
   if(make_nonblocking(ret->ttyinfp)){
     free(ret);
@@ -823,6 +824,7 @@ notcurses* notcurses_init(const notcurses_options* opts, FILE* outfp){
   if(interrogate_terminfo(&ret->tcache)){
     goto err;
   }
+  ret->nowideglyphs = term_no_wide_support();
   if(prep_special_keys(ret)){
     goto err;
   }
@@ -1755,6 +1757,10 @@ bool notcurses_cansixel(const notcurses* nc){
   return nc->libsixel;
 }
 
+bool notcurses_canwide(const notcurses* nc){
+  return !nc->nowideglyphs;
+}
+
 palette256* palette256_new(notcurses* nc){
   palette256* p = malloc(sizeof(*p));
   if(p){
@@ -2050,4 +2056,29 @@ void ncplane_center_abs(const ncplane* n, int* RESTRICT y, int* RESTRICT x){
   if(x){
     *x += n->absx;
   }
+}
+
+int notcurses_mbswidth(const notcurses* nc, const char* mbs){
+  bool capwide = !notcurses_canwide(nc);
+  int offset = 0; // offset into mbs
+  int cols = 0;   // number of columns consumed thus far
+  mbstate_t ps;
+  memset(&ps, 0, sizeof(ps));
+  do{
+    wchar_t wcs;
+    size_t r = mbrtowc(&wcs, mbs + offset, SIZE_MAX, &ps);
+    if(r == (size_t)-1 || r == (size_t)-2){
+      return -1;
+    }
+    int w = wcwidth(wcs);
+    if(w < 0){
+      return -1;
+    }
+    if(capwide && w > 1){
+      w = 1;
+    }
+    cols += w;
+    offset += r;
+  }while(mbs[offset]);
+  return cols;
 }

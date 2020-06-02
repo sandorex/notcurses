@@ -161,13 +161,14 @@ ncselector* ncselector_create(ncplane* nc, int y, int x, const ncselector_option
   if(opts->defidx && opts->defidx >= opts->itemcount){
     return NULL;
   }
+  const struct notcurses* nc_ = ncplane_notcurses(nc);
   ncselector* ns = malloc(sizeof(*ns));
   ns->title = opts->title ? strdup(opts->title) : NULL;
-  ns->titlecols = opts->title ? mbswidth(opts->title) : 0;
+  ns->titlecols = opts->title ? notcurses_mbswidth(nc_, opts->title) : 0;
   ns->secondary = opts->secondary ? strdup(opts->secondary) : NULL;
-  ns->secondarycols = opts->secondary ? mbswidth(opts->secondary) : 0;
+  ns->secondarycols = opts->secondary ? notcurses_mbswidth(nc_, opts->secondary) : 0;
   ns->footer = opts->footer ? strdup(opts->footer) : NULL;
-  ns->footercols = opts->footer ? mbswidth(opts->footer) : 0;
+  ns->footercols = opts->footer ? notcurses_mbswidth(nc_, opts->footer) : 0;
   ns->selected = opts->defidx;
   ns->startdisp = opts->defidx >= opts->maxdisplay ? opts->defidx - opts->maxdisplay + 1 : 0;
   ns->longop = 0;
@@ -191,12 +192,12 @@ ncselector* ncselector_create(ncplane* nc, int y, int x, const ncselector_option
   }
   for(ns->itemcount = 0 ; ns->itemcount < opts->itemcount ; ++ns->itemcount){
     const struct ncselector_item* src = &opts->items[ns->itemcount];
-    int cols = mbswidth(src->option);
+    int cols = notcurses_mbswidth(nc_, src->option);
     ns->items[ns->itemcount].opcolumns = cols;
     if(cols > ns->longop){
       ns->longop = cols;
     }
-    cols = mbswidth(src->desc);
+    cols = notcurses_mbswidth(nc_, src->desc);
     ns->items[ns->itemcount].desccolumns = cols;
     if(cols > ns->longdesc){
       ns->longdesc = cols;
@@ -655,13 +656,14 @@ ncmultiselector_dim_yx(notcurses* nc, const ncmultiselector* n, int* ncdimy, int
 
 ncmultiselector* ncmultiselector_create(ncplane* nc, int y, int x,
                                         const ncmultiselector_options* opts){
+  const struct notcurses* nc_ = ncplane_notcurses(nc);
   ncmultiselector* ns = malloc(sizeof(*ns));
   ns->title = opts->title ? strdup(opts->title) : NULL;
-  ns->titlecols = opts->title ? mbswidth(opts->title) : 0;
+  ns->titlecols = opts->title ? notcurses_mbswidth(nc_, opts->title) : 0;
   ns->secondary = opts->secondary ? strdup(opts->secondary) : NULL;
-  ns->secondarycols = opts->secondary ? mbswidth(opts->secondary) : 0;
+  ns->secondarycols = opts->secondary ? notcurses_mbswidth(nc_, opts->secondary) : 0;
   ns->footer = opts->footer ? strdup(opts->footer) : NULL;
-  ns->footercols = opts->footer ? mbswidth(opts->footer) : 0;
+  ns->footercols = opts->footer ? notcurses_mbswidth(nc_, opts->footer) : 0;
   ns->current = 0;
   ns->startdisp = 0;
   ns->longitem = 0;
@@ -684,11 +686,11 @@ ncmultiselector* ncmultiselector_create(ncplane* nc, int y, int x,
   }
   for(ns->itemcount = 0 ; ns->itemcount < opts->itemcount ; ++ns->itemcount){
     const struct ncmselector_item* src = &opts->items[ns->itemcount];
-    int cols = mbswidth(src->option);
+    int cols = notcurses_mbswidth(nc_, src->option);
     if(cols > ns->longitem){
       ns->longitem = cols;
     }
-    int cols2 = mbswidth(src->desc);
+    int cols2 = notcurses_mbswidth(nc_, src->desc);
     if(cols + cols2 > ns->longitem){
       ns->longitem = cols + cols2;
     }

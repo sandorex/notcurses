@@ -325,6 +325,7 @@ typedef struct notcurses {
   bool ownttyfp;  // do we own ttyfp (and thus must close it?)
   bool utf8;      // are we using utf-8 encoding, as hoped?
   bool libsixel;  // do we have Sixel support?
+  bool nowideglyphs; // are multicolumn glyphs known to be unsupported?
 } notcurses;
 
 void sigwinch_handler(int signo);
@@ -758,6 +759,8 @@ calc_gradient_channels(uint64_t* channels, uint64_t ul, uint64_t ur,
     channels_set_bg_default(channels);
   }
 }
+
+bool term_no_wide_support(void);
 
 #ifdef __cplusplus
 }
